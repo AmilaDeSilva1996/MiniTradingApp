@@ -1,11 +1,4 @@
-#include <iostream>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-
-#pragma comment(lib, "ws2_32.lib")  // Link with Winsock library
-
-#define SERVER_IP "127.0.0.1"
-#define SERVER_PORT 8080
+#include "frontend.h"
 
 void sendToGate(const std::string& message) {
     // Initialize Winsock
@@ -52,12 +45,4 @@ void sendToGate(const std::string& message) {
     // Cleanup
     closesocket(clientSocket);
     WSACleanup();
-}
-
-int main() {
-    std::string name;
-    std::cout<<"Enter the name:";
-    std::cin>>name;
-    sendToGate(name);
-    return 0;
 }

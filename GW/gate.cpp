@@ -1,19 +1,33 @@
-#include <iostream>
-#include <winsock2.h>
-#include <ws2tcpip.h>
+#include "gate.h"
 
-#pragma comment(lib, "ws2_32.lib") // Link Winsock library
+GateServer::GateServer() {
+    WSADATA wsa;
+    WSAStartup(MAKEWORD(2, 2), &wsa);
 
-#define PORT 8080
-#define ENGINE_PORT 9090
-#define BUFFER_SIZE 1024
+    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (serverSocket == INVALID_SOCKET) error("Socket creation failed");
 
-void error(const char* msg) {
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_addr.s_addr = INADDR_ANY;
+    serverAddr.sin_port = htons(PORT);
+
+    if (bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR)
+        error("Binding failed");
+
+    listen(serverSocket, 3);
+}
+
+GateServer::~GateServer() {
+    closesocket(serverSocket);
+    WSACleanup();
+}
+
+void GateServer::error(const char* msg) {
     std::cerr << msg << " Error Code: " << WSAGetLastError() << std::endl;
     exit(EXIT_FAILURE);
 }
 
-void forwardToEngine(const std::string& name) {
+void GateServer::forwardToEngine(const std::string& name) {
     SOCKET engineSocket;
     struct sockaddr_in engineAddr;
     char buffer[BUFFER_SIZE];
@@ -37,30 +51,15 @@ void forwardToEngine(const std::string& name) {
     closesocket(engineSocket);
 }
 
-int main() {
-    WSADATA wsa;
-    SOCKET serverSocket, clientSocket;
-    struct sockaddr_in serverAddr, clientAddr;
+void GateServer::start() {
+    struct sockaddr_in clientAddr;
     int addrLen = sizeof(clientAddr);
     char buffer[BUFFER_SIZE];
 
-    WSAStartup(MAKEWORD(2, 2), &wsa);
-
-    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
-    if (serverSocket == INVALID_SOCKET) error("Socket creation failed");
-
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_addr.s_addr = INADDR_ANY;
-    serverAddr.sin_port = htons(PORT);
-
-    if (bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR)
-        error("Binding failed");
-
-    listen(serverSocket, 3);
     std::cout << "Gate Server is listening on port " << PORT << "...\n";
 
     while (true) {
-        clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &addrLen);
+        SOCKET clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &addrLen);
         if (clientSocket == INVALID_SOCKET) error("Accept failed");
 
         recv(clientSocket, buffer, BUFFER_SIZE, 0);
@@ -72,8 +71,4 @@ int main() {
         send(clientSocket, "Received & Processed", 20, 0);
         closesocket(clientSocket);
     }
-
-    closesocket(serverSocket);
-    WSACleanup();
-    return 0;
 }
