@@ -10,7 +10,8 @@ class OrderBook
 public:
 	// OrderBook();
 	// virtual ~OrderBook();
-
+	void matchOrders();
+	void printOrders(const std::string& symbol);
 	void addOrder(const Order& order);
 	void deleteOrder(const std::string& orderID);
 	void updateOrder(const std::string& orderID);
